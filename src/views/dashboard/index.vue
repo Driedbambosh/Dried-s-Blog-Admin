@@ -61,7 +61,7 @@ export default {
   components: { Editor, Toolbar },
   created() {
     getArticle().then(res => {
-      this.articlesList = res.data
+      this.articlesList = res.data.data
     })
   },
   computed: {
