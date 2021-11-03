@@ -1,49 +1,44 @@
 <template>
   <div class="dashboard-container">
-    <div class="dashboard-text">Hello: {{ nickName }}</div>
-    <el-upload
-      action="/my-blog/github/updateImage"
-      :headers="token"
-      list-type="picture-card"
-      :on-preview="handlePictureCardPreview"
-      :on-remove="handleRemove"
-    >
-      <i class="el-icon-plus"></i>
-    </el-upload>
-    <div v-html="article"></div>
-    <div v-for="item in articlesList" :key="item.id">
-      <div @click="getArticleDetails(item._id)">标题:{{ item.title }}</div>
-    </div>
     <div>
-      <div style="border: 1px solid #ccc">
-        <!-- 工具栏 -->
-        <Toolbar
-          style="border-bottom: 1px solid #ccc"
-          :editorId="editorId"
-          :defaultConfig="toolbarConfig"
-          :mode="mode"
-        />
-
-        <!-- 编辑器 -->
-        <Editor
-          style="height: 500px"
-          :editorId="editorId"
-          :defaultConfig="editorConfig"
-          :defaultContent="getDefaultContent"
-          :mode="mode"
-          @onCreated="onCreated"
-          @onChange="onChange"
-          @onDestroyed="onDestroyed"
-          @onMaxLength="onMaxLength"
-          @onFocus="onFocus"
-          @onBlur="onBlur"
-          @customAlert="customAlert"
-          @customPaste="customPaste"
-        />
+      <!-- 实时展示 -->
+      <div style="border: none" class="ql-container ql-snow">
+        <div class="ql-editor" v-html="content"></div>
       </div>
-      <div>
-        <el-button type="primary" @click="upArtical">提交</el-button>
+      <div class="editorBox">
+        <quill-editor
+        v-model="content"
+        ref="myQuillEditor"
+        :options="editorOption"
+        @focus="onEditorFocus($event)"
+        @blur="onEditorBlur($event)"
+        @change="onEditorChange($event)"
+        class="editor"
+      ></quill-editor>
+      <form
+        style="background-color:#fff"
+        action
+        method="post"
+        enctype="multipart/form-data"
+        id="uploadFormMulti"
+      >
+        <input
+          style="display: none"
+          :id="uniqueId"
+          type="file"
+          name="file"
+          multiple
+          accept="image/jpg, image/jpeg, image/png, image/gif"
+          @change="uploadImg('uploadFormMulti')"
+        />
+      </form>
       </div>
+      <el-button
+        class="showEdit"
+        type="primary"
+        icon="el-icon-arrow-up"
+        @click="editUp"
+      ></el-button>
     </div>
   </div>
 </template>
@@ -51,70 +46,113 @@
 <script>
 import { mapGetters } from "vuex";
 import { getToken } from "@/utils/auth";
-import {
-  Editor,
-  Toolbar,
-  getEditor,
-  removeEditor,
-} from "@wangeditor/editor-for-vue";
-import cloneDeep from "lodash.clonedeep";
 import Prism from "prismjs";
-import "@wangeditor/editor/dist/css/style.css";
+import anime from "animejs";
 import { sendArticle, getArticle, getArticleDetail } from "@/api/article";
-import { createEditor } from "@wangeditor/editor";
+import hljs from "highlight.js";
+import "highlight.js/styles/sunburst.css";
+
+// 工具栏配置
+const toolbarOptions = [
+  ["bold", "italic", "underline", "strike"], // 加粗 斜体 下划线 删除线 -----['bold', 'italic', 'underline', 'strike']
+  ["blockquote", "code-block"], // 引用  代码块-----['blockquote', 'code-block']
+  [{ header: 1 }, { header: 2 }], // 1、2 级标题-----[{ header: 1 }, { header: 2 }]
+  [{ list: "ordered" }, { list: "bullet" }], // 有序、无序列表-----[{ list: 'ordered' }, { list: 'bullet' }]
+  [{ script: "sub" }, { script: "super" }], // 上标/下标-----[{ script: 'sub' }, { script: 'super' }]
+  [{ indent: "-1" }, { indent: "+1" }], // 缩进-----[{ indent: '-1' }, { indent: '+1' }]
+  [{ direction: "rtl" }], // 文本方向-----[{'direction': 'rtl'}]
+  [{ size: ["small", false, "large", "huge"] }], // 字体大小-----[{ size: ['small', false, 'large', 'huge'] }]
+  [{ header: [1, 2, 3, 4, 5, 6, false] }], // 标题-----[{ header: [1, 2, 3, 4, 5, 6, false] }]
+  [{ color: [] }, { background: [] }], // 字体颜色、字体背景颜色-----[{ color: [] }, { background: [] }]
+  [{ font: [] }], // 字体种类-----[{ font: [] }]
+  [{ align: [] }], // 对齐方式-----[{ align: [] }]
+  ["clean"], // 清除文本格式-----['clean']
+  ["image", "video"], // 链接、图片、视频-----['link', 'image', 'video']
+];
 export default {
   name: "Dashboard",
-
-  components: { Editor, Toolbar },
   created() {
     this.getArticleMet();
   },
+  mounted() {
+    var _this = this;
+    var imgHandler = async function (image) {
+      if (image) {
+        var fileInput = document.getElementById(_this.uniqueId); //隐藏的file文本ID
+        fileInput.click(); //加一个触发事件
+      }
+    };
+    _this.editor.getModule("toolbar").addHandler("image", imgHandler);
+  },
   computed: {
     ...mapGetters(["nickName"]),
-    // 注意，深度拷贝 content ，否则会报错
-    getDefaultContent() {
-      return cloneDeep(this.defaultContent);
+    //当前富文本实例
+    editor() {
+      return this.$refs.myQuillEditor.quill;
     },
-  },
-  // 及时销毁 editor
-  beforeDestroy() {
-    const editor = getEditor(this.editorId);
-    if (editor == null) return;
-
-    // 销毁，并移除 editor
-    editor.destroy();
-    removeEditor(this.editorId);
   },
   data() {
     return {
       token: {
         authorization: "Bearer " + getToken(),
       },
-      editorId: "w-e-1",
-      // 富文本编辑器数据
-      editorHtml: "",
-      articlesList: [],
-      article: "",
-      toolbarConfig: {
-        /* 工具栏配置 */
-      },
-      defaultContent: [
-        {
-          type: "paragraph",
-          children: [{ text: "一行文字" }],
+      uniqueId: "uniqueId",
+      content: ``, // 富文本编辑器默认内容
+      showEdit: false,
+      editorOption: {
+        //  富文本编辑器配置
+        modules: {
+          //工具栏定义的
+          toolbar: toolbarOptions,
+          syntax: {
+            highlight: (text) => {
+              return hljs.highlightAuto(text).value; // 这里就是代码高亮需要配置的地方
+            },
+          },
         },
-      ],
-      editorConfig: {
-        placeholder: "请输入内容...",
-        // 其他编辑器配置
-        // 菜单配置
+        //主题
+        theme: "snow",
+        placeholder: "请输入正文",
       },
-      mode: "default", // or 'simple'
-
-      curContent: [],
     };
   },
   methods: {
+    editUp() {
+      if (!this.showEdit) {
+        anime({
+          targets: [".editorBox"],
+          bottom: "100px",
+          duration: 1000,
+          loop: false,
+        });
+      this.rotate()
+      } else {
+        anime({
+          targets: [".editorBox"],
+          bottom: "-500px",
+          duration: 1000,
+          loop: false,
+        });
+      this.rotateF()
+      }
+      this.showEdit = !this.showEdit
+    },
+    rotate() {
+      anime({
+        targets: [".showEdit"],
+        duration: 1000,
+        rotate: 180,
+        loop: false,
+      });
+    },
+    rotateF() {
+      anime({
+        targets: [".showEdit"],
+        duration: 1000,
+        rotate: 0,
+        loop: false,
+      });
+    },
     getArticleMet() {
       getArticle().then((res) => {
         this.articlesList = res.data.data;
@@ -130,65 +168,147 @@ export default {
         const editor = createEditor({ content });
         that.article = editor.getHtml();
         this.$nextTick(() => {
-          Prism.highlightAll()
-        })
+          Prism.highlightAll();
+        });
       });
     },
-    upArtical() {
-      const editor = getEditor(this.editorId);
-      console.log(editor.children);
-      sendArticle({
-        title: "标题",
-        article: editor.children,
-      }).then((res) => {
-        console.log(res);
-      });
-    },
-    handlePictureCardPreview() {},
-    handleRemove() {},
-    onCreated(editor) {
-      console.log("onCreated", editor);
-    },
-    onChange(editor) {
-      this.curContent = editor.children;
-      this.editorHtml = editor.getHtml();
-    },
-    onDestroyed(editor) {
-      console.log("onDestroyed", editor);
-    },
-    onMaxLength(editor) {
-      console.log("onMaxLength", editor);
-    },
-    onFocus(editor) {
-      console.log("onFocus", editor);
-    },
-    onBlur(editor) {
-      console.log("onBlur", editor);
-    },
-    customAlert(info, type) {
-      window.alert(`customAlert in Vue demo\n${type}:\n${info}`);
-    },
-    customPaste(editor, event, callback) {
-      // console.log(editor,callback);
-      // 自定义插入内容
-      // editor.insertText('xxx')
-      // 返回值（注意，vue 事件的返回值，不能用 return）
-      // callback(false) // 返回 false ，阻止默认粘贴行为
-      // callback(true) // 返回 true ，继续默认的粘贴行为
-    },
+    // 准备富文本编辑器
+    onEditorReady() {},
+    // 富文本编辑器 失去焦点事件
+    onEditorBlur() {},
+    // 富文本编辑器 获得焦点事件
+    onEditorFocus() {},
+    // 富文本编辑器 内容改变事件
+    onEditorChange() {},
+    uploadImg: async function () {
+      var _this = this;
+      //构造formData对象
+      var formData = new FormData();
+      formData.append("file", document.getElementById(_this.uniqueId).files[0]);
 
-    // insertText() {
-    //     // 获取 editor 实例，即可执行 editor API
-    //     const editor = getEditor(this.editorId)
-    //     if (editor == null) return
-    //     if (editor.selection == null) return
-
-    //     // 在选区插入一段文字
-    //     editor.insertText('一段文字')
-    // },
+      try {
+        //调用上传文件接口
+        this.$http.productapi.uploadImgReq(formData).then((res) => {
+          //返回上传文件的地址
+          let url = res;
+          if (url != null && url.length > 0) {
+            let Range = _this.editor.getSelection();
+            url = url.indexOf("http") != -1 ? url : "http:" + url;
+            //上传文件成功之后在富文本中回显(显示)
+            _this.editor.insertEmbed(
+              Range != null ? Range.index : 0,
+              "image",
+              url
+            );
+          } else {
+            _this.$message.warning("图片上传失败");
+          }
+          //成功之后,将文件的文本框的value置空
+          document.getElementById(_this.uniqueId).value = "";
+        });
+      } catch ({ message: msg }) {
+        document.getElementById(_this.uniqueId).value = "";
+        _this.$message.warning(msg);
+      }
+    },
   },
 };
 </script>
+<style lang='scss' >
+.ql-editor {
+  background-color: #fff;
+}
+.showEdit {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+}
+.editorBox {
+  position: fixed;
+  bottom: -500px;
+  background-color: #fff;
+}
+pre,
+code {
+  font-family: Consolas;
+}
+.editor {
+  line-height: normal !important;
+  height: 500px;
+}
+.ql-snow .ql-tooltip[data-mode="link"]::before {
+  content: "请输入链接地址:";
+}
+.ql-snow .ql-tooltip.ql-editing a.ql-action::after {
+  border-right: 0px;
+  content: "保存";
+  padding-right: 0px;
+}
+
+.ql-snow .ql-tooltip[data-mode="video"]::before {
+  content: "请输入视频地址:";
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item::before {
+  content: "14px";
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="small"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="small"]::before {
+  content: "10px";
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="large"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="large"]::before {
+  content: "18px";
+}
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="huge"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="huge"]::before {
+  content: "32px";
+}
+
+.ql-snow .ql-picker.ql-header .ql-picker-label::before,
+.ql-snow .ql-picker.ql-header .ql-picker-item::before {
+  content: "文本";
+}
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="1"]::before,
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="1"]::before {
+  content: "标题1";
+}
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="2"]::before,
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="2"]::before {
+  content: "标题2";
+}
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="3"]::before,
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="3"]::before {
+  content: "标题3";
+}
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="4"]::before,
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="4"]::before {
+  content: "标题4";
+}
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="5"]::before,
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="5"]::before {
+  content: "标题5";
+}
+.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="6"]::before,
+.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="6"]::before {
+  content: "标题6";
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item::before {
+  content: "标准字体";
+}
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="serif"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="serif"]::before {
+  content: "衬线字体";
+}
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="monospace"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="monospace"]::before {
+  content: "等宽字体";
+}
+</style>
+
 <style scoped>
 /* 表格 */
 table {
