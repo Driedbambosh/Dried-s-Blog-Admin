@@ -14,3 +14,11 @@ export function getArticle() {
       method: 'get',
     })
   }
+
+export function getArticleDetail(params) {
+  return request({
+    url: '/article/getArticle/',
+    method: 'get',
+    params
+  })
+}

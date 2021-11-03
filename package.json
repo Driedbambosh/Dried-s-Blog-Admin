@@ -23,6 +23,7 @@
     "normalize.css": "7.0.0",
     "nprogress": "0.2.0",
     "path-to-regexp": "2.4.0",
+    "prismjs": "^1.25.0",
     "vue": "2.6.10",
     "vue-router": "3.0.6",
     "vuex": "3.1.0"
@@ -36,6 +37,7 @@
     "babel-eslint": "10.1.0",
     "babel-jest": "23.6.0",
     "babel-plugin-dynamic-import-node": "2.3.3",
+    "babel-plugin-prismjs": "^2.1.0",
     "chalk": "2.4.2",
     "connect": "3.6.6",
     "eslint": "6.7.2",

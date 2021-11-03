@@ -21,3 +21,11 @@ export function logout() {
     method: 'post'
   })
 }
+
+export function userEdit(userInfo) {
+  return request({
+    url: '/users/userEdit',
+    method: 'post',
+    data:userInfo,
+  })
+}
