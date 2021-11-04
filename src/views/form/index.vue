@@ -3,7 +3,8 @@
     <div style="display: flex">
       <!-- 实时展示 -->
       <div style="border: none; width: 65%" class="ql-container ql-snow">
-        <div class="ql-editor" v-html="content[0]"></div>
+        <div v-if="content[0]!=='' && content[0] !== undefined && content[0] !== null" class="ql-editor" v-html="content[0]"></div>
+        <div v-else class="ql-editor" v-html="article">asdasdasd</div>
       </div>
       <el-table class="tableList" :data="articlesList" border>
         <el-table-column prop="title" label="标题" >
@@ -17,7 +18,7 @@
         </el-table-column>
         <el-table-column label="操作">
           <template slot-scope="scope">
-            <el-button @click="getArticleDetails(scope.row._id)">编辑</el-button>
+            <el-button type="primary" @click="getArticleDetails(scope.row._id)">查看</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -140,6 +141,7 @@ export default {
   data() {
     return {
       articlesList:[],
+      article:``,
       loading: false,
       userInfo: {},
       token: {
@@ -280,7 +282,7 @@ export default {
       getArticleDetail({
         articleId: id,
       }).then((res) => {
-        this.content = res.data.article;
+        this.article = res.data.article[0];
       });
     },
     // 准备富文本编辑器
