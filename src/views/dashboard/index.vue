@@ -85,7 +85,12 @@ export default {
       this.getUserInfo();
     },
     handleAvatarSuccess(res, file) {
-      this.userInfo.avatar = file.response.url;
+      if(file.response.status==200) {
+        this.$message.success(file.response.message)
+        this.userInfo.avatar = file.response.url;
+      }else {
+        this.$message.warning(file.response.message)
+      }
     },
     beforeAvatarUpload(file) {
       const isJPG = file.type === "image/jpeg" || file.type === "image/png";

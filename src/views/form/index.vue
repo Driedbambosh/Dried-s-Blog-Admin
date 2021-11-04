@@ -1,37 +1,83 @@
 <template>
   <div class="dashboard-container">
-    <div>
+    <div style="display: flex">
       <!-- 实时展示 -->
-      <div style="border: none" class="ql-container ql-snow">
-        <div class="ql-editor" v-html="content"></div>
+      <div style="border: none; width: 65%" class="ql-container ql-snow">
+        <div class="ql-editor" v-html="content[0]"></div>
       </div>
+      <el-table class="tableList" :data="articlesList" border>
+        <el-table-column prop="title" label="标题" >
+        </el-table-column>
+        <el-table-column label="封面">
+          <template slot-scope="scope">
+            <img style="width:60px;" :src="scope.row.picture" alt="">
+          </template>
+        </el-table-column>
+        <el-table-column prop="introduction" label="简介">
+        </el-table-column>
+        <el-table-column label="操作">
+          <template slot-scope="scope">
+            <el-button @click="getArticleDetails(scope.row._id)">编辑</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
       <div class="editorBox">
         <quill-editor
-        v-model="content"
-        ref="myQuillEditor"
-        :options="editorOption"
-        @focus="onEditorFocus($event)"
-        @blur="onEditorBlur($event)"
-        @change="onEditorChange($event)"
-        class="editor"
-      ></quill-editor>
-      <form
-        style="background-color:#fff"
-        action
-        method="post"
-        enctype="multipart/form-data"
-        id="uploadFormMulti"
-      >
-        <input
-          style="display: none"
-          :id="uniqueId"
-          type="file"
-          name="file"
-          multiple
-          accept="image/jpg, image/jpeg, image/png, image/gif"
-          @change="uploadImg('uploadFormMulti')"
-        />
-      </form>
+          v-model="content[0]"
+          ref="myQuillEditor"
+          :options="editorOption"
+          @focus="onEditorFocus($event)"
+          @blur="onEditorBlur($event)"
+          @change="onEditorChange($event)"
+          class="editor"
+        ></quill-editor>
+        <form
+          action
+          method="post"
+          enctype="multipart/form-data"
+          id="uploadFormMulti"
+        >
+          <input
+            style="display: none"
+            :id="uniqueId"
+            type="file"
+            name="file"
+            multiple
+            accept="image/jpg, image/jpeg, image/png, image/gif"
+            @change="uploadImg('uploadFormMulti')"
+          />
+        </form>
+      </div>
+      <div class="editButton">
+        <el-form
+          v-loading="loading"
+          ref="form"
+          :model="edit"
+          label-width="120px"
+        >
+          <el-form-item label="标题">
+            <el-input v-model="edit.title"></el-input>
+          </el-form-item>
+          <el-form-item label="介绍">
+            <el-input v-model="edit.introduction"></el-input>
+          </el-form-item>
+          <el-form-item label="封面">
+            <el-upload
+              class="avatar-uploader"
+              action="/my-blog/github/updateImage"
+              :headers="token"
+              :show-file-list="false"
+              :on-success="handleAvatarSuccess"
+              :before-upload="beforeAvatarUpload"
+            >
+              <img v-if="edit.picture" :src="edit.picture" class="avatar" />
+              <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+            </el-upload>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="sendarticle">提交</el-button>
+          </el-form-item>
+        </el-form>
       </div>
       <el-button
         class="showEdit"
@@ -93,12 +139,16 @@ export default {
   },
   data() {
     return {
+      articlesList:[],
+      loading: false,
+      userInfo: {},
       token: {
         authorization: "Bearer " + getToken(),
       },
       uniqueId: "uniqueId",
-      content: ``, // 富文本编辑器默认内容
+      content: [], // 富文本编辑器默认内容
       showEdit: false,
+      edit: {},
       editorOption: {
         //  富文本编辑器配置
         modules: {
@@ -117,6 +167,52 @@ export default {
     };
   },
   methods: {
+    // 获取文章列表
+    getArticleMet() {
+      getArticle().then((res) => {
+        this.articlesList = res.data.data;
+        this.$forceUpdate()
+      });
+    },
+    // 提交文章
+    sendarticle() {
+      this.loading = true;
+      this.edit.article = this.content[0];
+      const that = this;
+      sendArticle(this.edit).then((res) => {
+        if (res.status == 200) {
+          that.$message.success(res.data.message);
+          this.edit = {}
+          this.content[0] = ''
+        } else {
+          that.$message.warning(res.data.message);
+        }
+      });
+      this.getArticleMet()
+      this.loading = false;
+    },
+    // 封面上传
+    handleAvatarSuccess(res, file) {
+      if (file.response.status == 200) {
+        this.$message.success(file.response.message);
+        this.edit.picture = file.response.url;
+      } else {
+        this.$message.warning(file.response.message);
+      }
+      this.$forceUpdate();
+    },
+    beforeAvatarUpload(file) {
+      const isJPG = file.type === "image/jpeg" || file.type === "image/png";
+      const isLt2M = file.size / 1024 / 1024 < 4;
+
+      if (!isJPG) {
+        this.$message.error("上传头像图片只能是 JPG/PNG 格式!");
+      }
+      if (!isLt2M) {
+        this.$message.error("上传头像图片大小不能超过 4MB!");
+      }
+      return isJPG && isLt2M;
+    },
     editUp() {
       if (!this.showEdit) {
         anime({
@@ -125,7 +221,19 @@ export default {
           duration: 1000,
           loop: false,
         });
-      this.rotate()
+        anime({
+          targets: [".editButton"],
+          bottom: "20px",
+          duration: 1000,
+          loop: false,
+        });
+        anime({
+          targets: [".tableList"],
+          right: "-700px",
+          duration: 1000,
+          loop: false,
+        })
+        this.rotate();
       } else {
         anime({
           targets: [".editorBox"],
@@ -133,9 +241,21 @@ export default {
           duration: 1000,
           loop: false,
         });
-      this.rotateF()
+        anime({
+          targets: [".editButton"],
+          bottom: "-500px",
+          duration: 1000,
+          loop: false,
+        });
+        anime({
+          targets: [".tableList"],
+          right: "10px",
+          duration: 1000,
+          loop: false,
+        })
+        this.rotateF();
       }
-      this.showEdit = !this.showEdit
+      this.showEdit = !this.showEdit;
     },
     rotate() {
       anime({
@@ -153,23 +273,14 @@ export default {
         loop: false,
       });
     },
-    getArticleMet() {
-      getArticle().then((res) => {
-        this.articlesList = res.data.data;
-      });
-    },
+
     // 获取文章详情
     getArticleDetails(id) {
       const that = this;
       getArticleDetail({
         articleId: id,
       }).then((res) => {
-        const content = res.data.article;
-        const editor = createEditor({ content });
-        that.article = editor.getHtml();
-        this.$nextTick(() => {
-          Prism.highlightAll();
-        });
+        this.content = res.data.article;
       });
     },
     // 准备富文本编辑器
@@ -215,6 +326,32 @@ export default {
 };
 </script>
 <style lang='scss' >
+.line {
+  text-align: center;
+}
+.avatar-uploader .el-upload {
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.avatar-uploader .el-upload:hover {
+  border-color: #409eff;
+}
+.avatar-uploader-icon {
+  font-size: 28px;
+  color: #8c939d;
+  width: 178px;
+  height: 178px;
+  line-height: 178px;
+  text-align: center;
+}
+.avatar {
+  width: 178px;
+  height: 178px;
+  display: block;
+}
 .ql-editor {
   background-color: #fff;
 }
@@ -226,7 +363,9 @@ export default {
 .editorBox {
   position: fixed;
   bottom: -500px;
+  width: 55%;
   background-color: #fff;
+  background-color: pink;
 }
 pre,
 code {
@@ -363,6 +502,14 @@ hr {
 }
 </style>
 <style lang="scss" scoped>
+.editButton {
+  position: fixed;
+  right: 120px;
+  bottom: -500px;
+  width: 20%;
+}
+.tableList {
+}
 .dashboard {
   &-container {
     margin: 30px;
