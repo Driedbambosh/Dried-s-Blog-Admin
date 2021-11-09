@@ -17,7 +17,14 @@ export function getArticle() {
 
 export function getArticleDetail(params) {
   return request({
-    url: '/article/getArticle/',
+    url: '/article/getArticle',
+    method: 'get',
+    params
+  })
+}
+export function deleteArticle(params) {
+  return request({
+    url: '/article/deleteArticle',
     method: 'get',
     params
   })

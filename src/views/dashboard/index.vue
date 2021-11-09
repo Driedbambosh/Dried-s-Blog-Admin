@@ -28,7 +28,7 @@
         <el-input disabled v-model="userInfo.userName" />
       </el-form-item>
       <el-form-item label="介绍">
-        <el-input v-model="userInfo.introduction" type="textarea" />
+        <el-input :autosize="{ minRows: 4, maxRows: 6}" min v-model="userInfo.introduction" type="textarea" />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="onSubmit">保存</el-button>

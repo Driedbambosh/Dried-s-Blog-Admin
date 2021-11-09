@@ -28,6 +28,18 @@ export const constantRoutes = [
     }]
   },
   {
+    path: '/article',
+    component: Layout,
+    children: [
+      {
+        path: 'articleList',
+        name: 'Form',
+        component: () => import('@/views/form/articleList'),
+        meta: { title: '文章列表', icon: 'form' }
+      }
+    ]
+  },
+  {
     path: '/form',
     component: Layout,
     children: [
@@ -35,7 +47,7 @@ export const constantRoutes = [
         path: 'index',
         name: 'Form',
         component: () => import('@/views/form/index'),
-        meta: { title: 'Form', icon: 'form' }
+        meta: { title: '新增文章', icon: 'form' }
       }
     ]
   },

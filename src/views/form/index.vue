@@ -359,6 +359,7 @@ export default {
 }
 .showEdit {
   position: fixed;
+  z-index: 10;
   right: 20px;
   bottom: 20px;
 }
