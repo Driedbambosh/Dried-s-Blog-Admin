@@ -8,12 +8,21 @@ export function sendArticle(data) {
   })
 }
 
-export function getArticle() {
-    return request({
-      url: '/article/',
-      method: 'get',
-    })
-  }
+export function editArticle(data) {
+  return request({
+    url: '/article/editArticle',
+    method: 'post',
+    data
+  })
+}
+
+export function getArticle(params) {
+  return request({
+    url: '/article/',
+    method: 'get',
+    params
+  })
+}
 
 export function getArticleDetail(params) {
   return request({

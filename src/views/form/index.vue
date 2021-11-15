@@ -3,25 +3,31 @@
     <div style="display: flex">
       <!-- 实时展示 -->
       <div style="border: none; width: 65%" class="ql-container ql-snow">
-        <div v-if="content[0]!=='' && content[0] !== undefined && content[0] !== null" class="ql-editor" v-html="content[0]"></div>
+        <div
+          v-if="
+            content[0] !== '' && content[0] !== undefined && content[0] !== null
+          "
+          class="ql-editor"
+          v-html="content[0]"
+        ></div>
         <div v-else class="ql-editor" v-html="article">asdasdasd</div>
       </div>
-      <el-table class="tableList" :data="articlesList" border>
-        <el-table-column prop="title" label="标题" >
-        </el-table-column>
+      <!-- <el-table class="tableList" :data="articlesList" border>
+        <el-table-column prop="title" label="标题"> </el-table-column>
         <el-table-column label="封面">
           <template slot-scope="scope">
-            <img style="width:60px;" :src="scope.row.picture" alt="">
+            <img style="width: 60px" :src="scope.row.picture" alt="" />
           </template>
         </el-table-column>
-        <el-table-column prop="introduction" label="简介">
-        </el-table-column>
+        <el-table-column prop="introduction" label="简介"> </el-table-column>
         <el-table-column label="操作">
           <template slot-scope="scope">
-            <el-button type="primary" @click="getArticleDetails(scope.row._id)">查看</el-button>
+            <el-button type="primary" @click="getArticleDetails(scope.row._id)"
+              >查看</el-button
+            >
           </template>
         </el-table-column>
-      </el-table>
+      </el-table> -->
       <div class="editorBox">
         <quill-editor
           v-model="content[0]"
@@ -119,7 +125,7 @@ const toolbarOptions = [
 export default {
   name: "Dashboard",
   created() {
-    this.getArticleMet();
+    // this.getArticleMet();
   },
   mounted() {
     var _this = this;
@@ -140,8 +146,8 @@ export default {
   },
   data() {
     return {
-      articlesList:[],
-      article:``,
+      articlesList: [],
+      article: ``,
       loading: false,
       userInfo: {},
       token: {
@@ -173,7 +179,7 @@ export default {
     getArticleMet() {
       getArticle().then((res) => {
         this.articlesList = res.data.data;
-        this.$forceUpdate()
+        this.$forceUpdate();
       });
     },
     // 提交文章
@@ -184,13 +190,13 @@ export default {
       sendArticle(this.edit).then((res) => {
         if (res.status == 200) {
           that.$message.success(res.data.message);
-          this.edit = {}
-          this.content[0] = ''
+          this.edit = {};
+          this.content[0] = "";
+          // this.getArticleMet();
         } else {
           that.$message.warning(res.data.message);
         }
       });
-      this.getArticleMet()
       this.loading = false;
     },
     // 封面上传
@@ -229,12 +235,12 @@ export default {
           duration: 1000,
           loop: false,
         });
-        anime({
-          targets: [".tableList"],
-          right: "-700px",
-          duration: 1000,
-          loop: false,
-        })
+        // anime({
+        //   targets: [".tableList"],
+        //   right: "-700px",
+        //   duration: 1000,
+        //   loop: false,
+        // });
         this.rotate();
       } else {
         anime({
@@ -249,12 +255,12 @@ export default {
           duration: 1000,
           loop: false,
         });
-        anime({
-          targets: [".tableList"],
-          right: "10px",
-          duration: 1000,
-          loop: false,
-        })
+        // anime({
+        //   targets: [".tableList"],
+        //   right: "10px",
+        //   duration: 1000,
+        //   loop: false,
+        // });
         this.rotateF();
       }
       this.showEdit = !this.showEdit;
@@ -282,7 +288,7 @@ export default {
       getArticleDetail({
         articleId: id,
       }).then((res) => {
-        this.article = res.data.article[0];
+        this.article = res.data.article;
       });
     },
     // 准备富文本编辑器
@@ -327,7 +333,7 @@ export default {
   },
 };
 </script>
-<style lang='scss' >
+<style>
 .line {
   text-align: center;
 }
@@ -354,6 +360,8 @@ export default {
   height: 178px;
   display: block;
 }
+</style>
+<style lang='scss' >
 .ql-editor {
   background-color: #fff;
 }
