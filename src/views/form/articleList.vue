@@ -211,7 +211,7 @@ export default {
     handleAvatarSuccess(res, file) {
       if (file.response.status == 200) {
         this.$message.success(file.response.message);
-        this.edit.picture = file.response.url;
+        this.form.picture = file.response.url;
       } else {
         this.$message.warning(file.response.message);
       }
