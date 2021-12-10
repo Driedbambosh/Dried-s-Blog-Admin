@@ -10,7 +10,7 @@
           class="ql-editor"
           v-html="content[0]"
         ></div>
-        <div v-else class="ql-editor" v-html="article">asdasdasd</div>
+        <div v-else class="ql-editor" v-html="article"></div>
       </div>
       <!-- <el-table class="tableList" :data="articlesList" border>
         <el-table-column prop="title" label="标题"> </el-table-column>

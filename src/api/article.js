@@ -18,7 +18,7 @@ export function editArticle(data) {
 
 export function getArticle(params) {
   return request({
-    url: '/article/',
+    url: '/article/forId',
     method: 'get',
     params
   })
