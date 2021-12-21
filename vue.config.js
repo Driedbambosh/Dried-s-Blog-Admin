@@ -61,6 +61,10 @@ module.exports = {
         include: 'initial'
       }
     ])
+    const webpack =require('webpack')
+    config.plugin('provide').use(webpack.ProvidePlugin, [{
+      'window.Quill': 'quill',
+    }])
 
     // when there are many pages, it will cause too many meaningless requests
     config.plugins.delete('prefetch')

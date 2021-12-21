@@ -101,9 +101,13 @@ import { mapGetters } from "vuex";
 import { getToken } from "@/utils/auth";
 import Prism from "prismjs";
 import anime from "animejs";
-import { sendArticle, getArticle, getArticleDetail } from "@/api/article";
+import { sendArticle, getArticle, getArticleDetail,sendImage } from "@/api/article";
 import hljs from "highlight.js";
 import "highlight.js/styles/sunburst.css";
+import { Quill}from 'vue-quill-editor';
+
+import imageResize  from 'quill-image-resize-module' // 调整大小组件。
+Quill.register('modules/imageResize', imageResize );
 
 // 工具栏配置
 const toolbarOptions = [
@@ -167,6 +171,14 @@ export default {
               return hljs.highlightAuto(text).value; // 这里就是代码高亮需要配置的地方
             },
           },
+          imageResize: {
+            displayStyles: {
+              backgroundColor: 'black',
+              border: 'none',
+              color: 'white',
+            },
+            modules: ['Resize','DisplaySize','Toolbar']
+          }
         },
         //主题
         theme: "snow",
@@ -304,12 +316,12 @@ export default {
       //构造formData对象
       var formData = new FormData();
       formData.append("file", document.getElementById(_this.uniqueId).files[0]);
-
+      console.log(formData);
       try {
         //调用上传文件接口
-        this.$http.productapi.uploadImgReq(formData).then((res) => {
+        sendImage(formData).then((res) => {
           //返回上传文件的地址
-          let url = res;
+          let url = res.data.url;
           if (url != null && url.length > 0) {
             let Range = _this.editor.getSelection();
             url = url.indexOf("http") != -1 ? url : "http:" + url;
@@ -376,7 +388,7 @@ export default {
   bottom: -500px;
   width: 55%;
   background-color: #fff;
-  background-color: pink;
+  // background-color: pink;
 }
 pre,
 code {

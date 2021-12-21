@@ -29,23 +29,6 @@
           <el-popconfirm @onConfirm="deleteArticle(scope.row._id)" title="确定删除吗？">
             <el-button type="text" slot="reference">删除</el-button>
           </el-popconfirm>
-          <!-- <el-popover placement="top" width="160">
-            <p>确定要删除吗？</p>
-            <div style="text-align: right; margin: 0">
-              <el-button type="text" size="mini" @click="visible = false"
-                >取消</el-button
-              >
-              <el-button
-                type="primary"
-                size="mini"
-                @click="deleteArticle(scope.row._id)"
-                >确定</el-button
-              >
-            </div>
-            <el-button style="margin-left: 20px" type="text" slot="reference"
-              >删除</el-button
-            >
-          </el-popover> -->
         </template>
       </el-table-column>
     </el-table>

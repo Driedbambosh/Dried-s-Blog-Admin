@@ -16,6 +16,14 @@ export function editArticle(data) {
   })
 }
 
+export function sendImage(data) {
+  return request({
+    url: '/github/updateImage',
+    method: 'post',
+    data
+  })
+}
+
 export function getArticle(params) {
   return request({
     url: '/article/forId',
