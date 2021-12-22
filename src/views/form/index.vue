@@ -32,6 +32,7 @@
         <quill-editor
           v-model="content[0]"
           ref="myQuillEditor"
+          v-maxWindow
           :options="editorOption"
           @focus="onEditorFocus($event)"
           @blur="onEditorBlur($event)"
@@ -55,7 +56,7 @@
           />
         </form>
       </div>
-      <div class="editButton">
+      <div id="editButton" class="editButton">
         <el-form
           v-loading="loading"
           ref="form"
@@ -88,6 +89,7 @@
       </div>
       <el-button
         class="showEdit"
+        id="showEdit"
         type="primary"
         icon="el-icon-arrow-up"
         @click="editUp"

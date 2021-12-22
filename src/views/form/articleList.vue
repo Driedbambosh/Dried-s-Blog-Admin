@@ -26,14 +26,19 @@
           <el-button type="text" @click="getArticleDetails(scope.row._id)"
             >编辑</el-button
           >
-          <el-popconfirm @onConfirm="deleteArticle(scope.row._id)" title="确定删除吗？">
+          <el-popconfirm
+            @onConfirm="deleteArticle(scope.row._id)"
+            title="确定删除吗？"
+          >
             <el-button type="text" slot="reference">删除</el-button>
           </el-popconfirm>
         </template>
       </el-table-column>
     </el-table>
     <el-dialog title="编辑" :visible.sync="dialogFormVisible">
-      <el-form style="padding-bottom:20px" :model="form">
+      
+      <div slot="footer" style="text-align:left" class="dialog-footer">
+        <el-form style="padding-bottom: 20px" :model="form">
         <el-form-item label="标题" label-width="120px">
           <el-input v-model="form.title" autocomplete="off"></el-input>
         </el-form-item>
@@ -60,13 +65,26 @@
             :options="editorOption"
             class="editor"
           ></quill-editor>
+          <form
+            action
+            method="post"
+            enctype="multipart/form-data"
+            id="uploadFormMulti"
+          >
+            <input
+              style="display: none"
+              :id="uniqueId"
+              type="file"
+              name="file"
+              multiple
+              accept="image/jpg, image/jpeg, image/png, image/gif"
+              @change="uploadImg('uploadFormMulti')"
+            />
+          </form>
         </el-form-item>
       </el-form>
-      <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false">取 消</el-button>
-        <el-button type="primary" @click="sendArticle"
-          >确 定</el-button
-        >
+        <el-button type="primary" @click="sendArticle">确 定</el-button>
       </div>
     </el-dialog>
     <el-pagination
@@ -84,11 +102,21 @@
 </template>
 
 <script>
-import { getArticle, getArticleDetail, deleteArticle,editArticle } from "@/api/article";
+import {
+  getArticle,
+  getArticleDetail,
+  deleteArticle,
+  editArticle,
+} from "@/api/article";
 import { getToken } from "@/utils/auth";
 import hljs from "highlight.js";
 import "highlight.js/styles/sunburst.css";
 import moment from "moment";
+import { Quill } from "vue-quill-editor";
+import imageResize from "quill-image-resize-module"; // 调整大小组件。
+import { sendImage } from "@/api/article";
+import { mapGetters } from "vuex";
+Quill.register("modules/imageResize", imageResize);
 
 // 工具栏配置
 const toolbarOptions = [
@@ -112,6 +140,7 @@ export default {
   name: "articleList",
   data() {
     return {
+      uniqueId: "uniqueId",
       token: {
         authorization: "Bearer " + getToken(),
       },
@@ -121,6 +150,7 @@ export default {
         pictur: "",
         article: ``,
       },
+      edit: {},
       editorOption: {
         //  富文本编辑器配置
         modules: {
@@ -130,6 +160,14 @@ export default {
             highlight: (text) => {
               return hljs.highlightAuto(text).value; // 这里就是代码高亮需要配置的地方
             },
+          },
+          imageResize: {
+            displayStyles: {
+              backgroundColor: "black",
+              border: "none",
+              color: "white",
+            },
+            modules: ["Resize", "DisplaySize", "Toolbar"],
           },
         },
         //主题
@@ -153,21 +191,35 @@ export default {
         );
       };
     },
+    //当前富文本实例
+    editor() {
+      return this.$refs.myQuillEditor.quill;
+    },
   },
   created() {
     this.getArticleMet();
   },
+  mounted() {
+    var _this = this;
+    var imgHandler = async function (image) {
+      if (image) {
+        var fileInput = document.getElementById(_this.uniqueId); //隐藏的file文本ID
+        fileInput.click(); //加一个触发事件
+      }
+    };
+    _this.editor.getModule("toolbar").addHandler("image", imgHandler);
+  },
   methods: {
     sendArticle() {
-      editArticle(this.form).then(res => {
-        if(res.status == 200) {
-          this.$message.success("编辑成功")
-          this.dialogFormVisible = false
+      editArticle(this.form).then((res) => {
+        if (res.status == 200) {
+          this.$message.success("编辑成功");
+          this.dialogFormVisible = false;
           this.getArticleMet();
-        }else {
-          this.$message.warning(res.statusText)
+        } else {
+          this.$message.warning(res.statusText);
         }
-      })
+      });
     },
     handleSizeChange(val) {
       this.pageSize = val;
@@ -179,12 +231,12 @@ export default {
     },
     // 获取文章列表
     getArticleMet() {
-      this.loading = true
+      this.loading = true;
       getArticle({
         pageSize: this.pageSize,
         pageNo: this.currentPage1,
       }).then((res) => {
-        this.loading = false
+        this.loading = false;
         this.total = res.data.total;
         this.articlesList = res.data.data;
         this.$forceUpdate();
@@ -233,6 +285,36 @@ export default {
         }
         this.visible = false;
       });
+    },
+    uploadImg: async function () {
+      var _this = this;
+      //构造formData对象
+      var formData = new FormData();
+      formData.append("file", document.getElementById(_this.uniqueId).files[0]);
+      try {
+        //调用上传文件接口
+        sendImage(formData).then((res) => {
+          //返回上传文件的地址
+          let url = res.data.url;
+          if (url != null && url.length > 0) {
+            let Range = _this.editor.getSelection();
+            url = url.indexOf("http") != -1 ? url : "http:" + url;
+            //上传文件成功之后在富文本中回显(显示)
+            _this.editor.insertEmbed(
+              Range != null ? Range.index : 0,
+              "image",
+              url
+            );
+          } else {
+            _this.$message.warning("图片上传失败");
+          }
+          //成功之后,将文件的文本框的value置空
+          document.getElementById(_this.uniqueId).value = "";
+        });
+      } catch ({ message: msg }) {
+        document.getElementById(_this.uniqueId).value = "";
+        _this.$message.warning(msg);
+      }
     },
   },
 };
