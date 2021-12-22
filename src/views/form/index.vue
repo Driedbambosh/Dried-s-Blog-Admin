@@ -28,7 +28,7 @@
           </template>
         </el-table-column>
       </el-table> -->
-      <div class="editorBox">
+      <div style="display:none" id="editorBox" class="editorBox">
         <quill-editor
           v-model="content[0]"
           ref="myQuillEditor"
@@ -56,7 +56,7 @@
           />
         </form>
       </div>
-      <div id="editButton" class="editButton">
+      <div style="display:none" id="editButton" class="editButton">
         <el-form
           v-loading="loading"
           ref="form"
@@ -142,6 +142,11 @@ export default {
       }
     };
     _this.editor.getModule("toolbar").addHandler("image", imgHandler);
+    // 解决画面闪烁
+    setTimeout(() => {
+      document.getElementById("editorBox").style.display = "block"
+      document.getElementById("editButton").style.display = "block"
+    },500)
   },
   computed: {
     ...mapGetters(["nickName"]),
