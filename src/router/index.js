@@ -47,7 +47,19 @@ export const constantRoutes = [
         path: 'index',
         name: 'Form',
         component: () => import('@/views/form/index'),
-        meta: { title: '新增文章', icon: 'form' }
+        meta: { title: '文章管理', icon: 'el-icon-s-order' }
+      }
+    ]
+  },
+  {
+    path: '/label',
+    component: Layout,
+    children: [
+      {
+        path: 'labelList',
+        name: 'Label',
+        component: () => import('@/views/form/labelList'),
+        meta: { title: '标签管理', icon: 'el-icon-s-flag' }
       }
     ]
   },

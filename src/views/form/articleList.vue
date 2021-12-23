@@ -3,12 +3,18 @@
     <el-table v-loading="loading" class="tableList" :data="articlesList" border>
       <el-table-column prop="title" label="标题"> </el-table-column>
       <el-table-column prop="userId.nickName" label="作者"> </el-table-column>
-      <el-table-column label="封面">
+      <!-- <el-table-column label="封面">
         <template slot-scope="scope">
           <img style="width: 60px" :src="scope.row.picture" alt="" />
         </template>
-      </el-table-column>
+      </el-table-column> -->
       <el-table-column prop="introduction" label="简介"> </el-table-column>
+      <el-table-column prop="label" label="标签">
+        <template slot-scope="scope">
+          <!-- <span :style="{'background-color':item.color}" class="label" v-for="item in scope.row.label" :key="item._id">{{item.labelName}}</span> -->
+          <el-tag style="color:#fff;border:none;margin-right:2px;margin-bottom:2px" :color="item.color" v-for="item in scope.row.label" :key="item._id" size="medium">{{item.labelName}}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="createdAt" label="创建时间">
         <template slot-scope="scope">
           {{ isoTime(scope.row.createdAt) }}
@@ -36,53 +42,71 @@
       </el-table-column>
     </el-table>
     <el-dialog title="编辑" :visible.sync="dialogFormVisible">
-      
-      <div slot="footer" style="text-align:left" class="dialog-footer">
+      <div slot="footer" style="text-align: left" class="dialog-footer">
         <el-form style="padding-bottom: 20px" :model="form">
-        <el-form-item label="标题" label-width="120px">
-          <el-input v-model="form.title" autocomplete="off"></el-input>
-        </el-form-item>
-        <el-form-item label="简介" label-width="120px">
-          <el-input v-model="form.introduction"></el-input>
-        </el-form-item>
-        <el-form-item label="封面" label-width="120px">
-          <el-upload
-            class="avatar-uploader"
-            action="/my-blog/github/updateImage"
-            :headers="token"
-            :show-file-list="false"
-            :on-success="handleAvatarSuccess"
-            :before-upload="beforeAvatarUpload"
-          >
-            <img v-if="form.picture" :src="form.picture" class="avatar" />
-            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
-          </el-upload>
-        </el-form-item>
-        <el-form-item>
-          <quill-editor
-            v-model="form.article"
-            ref="myQuillEditor"
-            :options="editorOption"
-            class="editor"
-          ></quill-editor>
-          <form
-            action
-            method="post"
-            enctype="multipart/form-data"
-            id="uploadFormMulti"
-          >
-            <input
-              style="display: none"
-              :id="uniqueId"
-              type="file"
-              name="file"
+          <el-form-item label="标题" label-width="120px">
+            <el-input v-model="form.title" autocomplete="off"></el-input>
+          </el-form-item>
+          <el-form-item label="简介" label-width="120px">
+            <el-input v-model="form.introduction"></el-input>
+          </el-form-item>
+          <el-form-item label="标签" label-width="120px">
+            <el-select
+              v-model="form.label"
               multiple
-              accept="image/jpg, image/jpeg, image/png, image/gif"
-              @change="uploadImg('uploadFormMulti')"
-            />
-          </form>
-        </el-form-item>
-      </el-form>
+              value-key="_id"
+              filterable
+              allow-create
+              default-first-option
+              placeholder="请选择文章标签"
+            >
+              <el-option
+                v-for="(item, index) in options"
+                :key="index"
+                :label="item.labelName"
+                :value="item"
+              >
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="封面" label-width="120px">
+            <el-upload
+              class="avatar-uploader"
+              action="/my-blog/github/updateImage"
+              :headers="token"
+              :show-file-list="false"
+              :on-success="handleAvatarSuccess"
+              :before-upload="beforeAvatarUpload"
+            >
+              <img v-if="form.picture" :src="form.picture" class="avatar" />
+              <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+            </el-upload>
+          </el-form-item>
+          <el-form-item>
+            <quill-editor
+              v-model="form.article"
+              ref="myQuillEditor"
+              :options="editorOption"
+              class="editor"
+            ></quill-editor>
+            <form
+              action
+              method="post"
+              enctype="multipart/form-data"
+              id="uploadFormMulti"
+            >
+              <input
+                style="display: none"
+                :id="uniqueId"
+                type="file"
+                name="file"
+                multiple
+                accept="image/jpg, image/jpeg, image/png, image/gif"
+                @change="uploadImg('uploadFormMulti')"
+              />
+            </form>
+          </el-form-item>
+        </el-form>
         <el-button @click="dialogFormVisible = false">取 消</el-button>
         <el-button type="primary" @click="sendArticle">确 定</el-button>
       </div>
@@ -108,6 +132,7 @@ import {
   deleteArticle,
   editArticle,
 } from "@/api/article";
+import { getLabel } from "@/api/label";
 import { getToken } from "@/utils/auth";
 import hljs from "highlight.js";
 import "highlight.js/styles/sunburst.css";
@@ -147,10 +172,12 @@ export default {
       form: {
         title: "",
         introduction: "",
+        label: [],
         pictur: "",
         article: ``,
       },
       edit: {},
+      options: [], //文章标签
       editorOption: {
         //  富文本编辑器配置
         modules: {
@@ -198,6 +225,7 @@ export default {
   },
   created() {
     this.getArticleMet();
+    this.getLabelData();
   },
   mounted() {
     var _this = this;
@@ -210,6 +238,15 @@ export default {
     _this.editor.getModule("toolbar").addHandler("image", imgHandler);
   },
   methods: {
+    // 获取文章标签
+    getLabelData() {
+      getLabel({
+        pageSize: 99999,
+        pageNo: 1,
+      }).then((res) => {
+        this.options = res.data.data;
+      });
+    },
     sendArticle() {
       editArticle(this.form).then((res) => {
         if (res.status == 200) {
@@ -354,5 +391,9 @@ export default {
 }
 .editButton {
   width: 20%;
+}
+.label {
+  padding: 10px;
+  margin: 0 5px 0 5px;
 }
 </style>

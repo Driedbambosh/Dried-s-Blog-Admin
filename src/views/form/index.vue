@@ -28,7 +28,7 @@
           </template>
         </el-table-column>
       </el-table> -->
-      <div style="display:none" id="editorBox" class="editorBox">
+      <div style="display: none" id="editorBox" class="editorBox">
         <quill-editor
           v-model="content[0]"
           ref="myQuillEditor"
@@ -56,7 +56,7 @@
           />
         </form>
       </div>
-      <div style="display:none" id="editButton" class="editButton">
+      <div style="display: none" id="editButton" class="editButton">
         <el-form
           v-loading="loading"
           ref="form"
@@ -68,6 +68,25 @@
           </el-form-item>
           <el-form-item label="介绍">
             <el-input v-model="edit.introduction"></el-input>
+          </el-form-item>
+          <el-form-item label="标签">
+            <el-select
+              v-model="edit.label"
+              multiple
+              value-key="_id"
+              filterable
+              allow-create
+              default-first-option
+              placeholder="请选择文章标签"
+            >
+              <el-option
+                v-for="(item,index) in options"
+                :key="index"
+                :label="item.labelName"
+                :value="item"
+              >
+              </el-option>
+            </el-select>
           </el-form-item>
           <el-form-item label="封面">
             <el-upload
@@ -103,13 +122,21 @@ import { mapGetters } from "vuex";
 import { getToken } from "@/utils/auth";
 import Prism from "prismjs";
 import anime from "animejs";
-import { sendArticle, getArticle, getArticleDetail,sendImage } from "@/api/article";
+import {
+  sendArticle,
+  getArticle,
+  getArticleDetail,
+  sendImage,
+} from "@/api/article";
+import {
+  getLabel
+} from "@/api/label";
 import hljs from "highlight.js";
 import "highlight.js/styles/sunburst.css";
-import { Quill}from 'vue-quill-editor';
+import { Quill } from "vue-quill-editor";
 
-import imageResize  from 'quill-image-resize-module' // 调整大小组件。
-Quill.register('modules/imageResize', imageResize );
+import imageResize from "quill-image-resize-module"; // 调整大小组件。
+Quill.register("modules/imageResize", imageResize);
 
 // 工具栏配置
 const toolbarOptions = [
@@ -131,7 +158,7 @@ const toolbarOptions = [
 export default {
   name: "Dashboard",
   created() {
-    // this.getArticleMet();
+    this.getLabelData();
   },
   mounted() {
     var _this = this;
@@ -144,9 +171,9 @@ export default {
     _this.editor.getModule("toolbar").addHandler("image", imgHandler);
     // 解决画面闪烁
     setTimeout(() => {
-      document.getElementById("editorBox").style.display = "block"
-      document.getElementById("editButton").style.display = "block"
-    },500)
+      document.getElementById("editorBox").style.display = "block";
+      document.getElementById("editButton").style.display = "block";
+    }, 500);
   },
   computed: {
     ...mapGetters(["nickName"]),
@@ -168,6 +195,7 @@ export default {
       content: [], // 富文本编辑器默认内容
       showEdit: false,
       edit: {},
+      options: [], //文章标签
       editorOption: {
         //  富文本编辑器配置
         modules: {
@@ -180,12 +208,12 @@ export default {
           },
           imageResize: {
             displayStyles: {
-              backgroundColor: 'black',
-              border: 'none',
-              color: 'white',
+              backgroundColor: "black",
+              border: "none",
+              color: "white",
             },
-            modules: ['Resize','DisplaySize','Toolbar']
-          }
+            modules: ["Resize", "DisplaySize", "Toolbar"],
+          },
         },
         //主题
         theme: "snow",
@@ -194,6 +222,15 @@ export default {
     };
   },
   methods: {
+    // 获取文章标签
+    getLabelData() {
+      getLabel({
+        pageSize: 99999,
+        pageNo: 1,
+      }).then(res => {
+        this.options = res.data.data
+      })
+    },
     // 获取文章列表
     getArticleMet() {
       getArticle().then((res) => {
