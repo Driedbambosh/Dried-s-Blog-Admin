@@ -72,7 +72,7 @@
           <el-form-item label="封面">
             <el-upload
               class="avatar-uploader"
-              action="/my-blog/github/updateImage"
+              action="/my-blog/qiniu/upload"
               :headers="token"
               :show-file-list="false"
               :on-success="handleAvatarSuccess"
@@ -103,13 +103,18 @@ import { mapGetters } from "vuex";
 import { getToken } from "@/utils/auth";
 import Prism from "prismjs";
 import anime from "animejs";
-import { sendArticle, getArticle, getArticleDetail,sendImage } from "@/api/article";
+import {
+  sendArticle,
+  getArticle,
+  getArticleDetail,
+  sendImage,
+} from "@/api/article";
 import hljs from "highlight.js";
 import "highlight.js/styles/sunburst.css";
-import { Quill}from 'vue-quill-editor';
+import { Quill } from "vue-quill-editor";
 
-import imageResize  from 'quill-image-resize-module' // 调整大小组件。
-Quill.register('modules/imageResize', imageResize );
+import imageResize from "quill-image-resize-module"; // 调整大小组件。
+Quill.register("modules/imageResize", imageResize);
 
 // 工具栏配置
 const toolbarOptions = [
@@ -135,7 +140,7 @@ export default {
   },
   mounted() {
     var _this = this;
-    var imgHandler = async function (image) {
+    var imgHandler = async function(image) {
       if (image) {
         var fileInput = document.getElementById(_this.uniqueId); //隐藏的file文本ID
         fileInput.click(); //加一个触发事件
@@ -175,12 +180,12 @@ export default {
           },
           imageResize: {
             displayStyles: {
-              backgroundColor: 'black',
-              border: 'none',
-              color: 'white',
+              backgroundColor: "black",
+              border: "none",
+              color: "white",
             },
-            modules: ['Resize','DisplaySize','Toolbar']
-          }
+            modules: ["Resize", "DisplaySize", "Toolbar"],
+          },
         },
         //主题
         theme: "snow",
@@ -215,11 +220,11 @@ export default {
     },
     // 封面上传
     handleAvatarSuccess(res, file) {
-      if (file.response.status == 200) {
-        this.$message.success(file.response.message);
-        this.edit.picture = file.response.url;
+      if (res.status == "200") {
+        this.$message.success(res.msg);
+        this.edit.picture = res.imageUrl;
       } else {
-        this.$message.warning(file.response.message);
+        this.$message.warning(res.msg);
       }
       this.$forceUpdate();
     },
@@ -313,7 +318,7 @@ export default {
     onEditorFocus() {},
     // 富文本编辑器 内容改变事件
     onEditorChange() {},
-    uploadImg: async function () {
+    uploadImg: async function() {
       var _this = this;
       //构造formData对象
       var formData = new FormData();
@@ -375,7 +380,7 @@ export default {
   display: block;
 }
 </style>
-<style lang='scss' >
+<style lang="scss">
 .ql-editor {
   background-color: #fff;
 }
@@ -545,5 +550,3 @@ hr {
   }
 }
 </style>
-
-

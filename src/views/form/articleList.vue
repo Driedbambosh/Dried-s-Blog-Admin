@@ -36,53 +36,52 @@
       </el-table-column>
     </el-table>
     <el-dialog title="编辑" :visible.sync="dialogFormVisible">
-      
       <div slot="footer" style="text-align:left" class="dialog-footer">
-        <el-form style="padding-bottom: 20px" :model="form">
-        <el-form-item label="标题" label-width="120px">
-          <el-input v-model="form.title" autocomplete="off"></el-input>
-        </el-form-item>
-        <el-form-item label="简介" label-width="120px">
-          <el-input v-model="form.introduction"></el-input>
-        </el-form-item>
-        <el-form-item label="封面" label-width="120px">
-          <el-upload
-            class="avatar-uploader"
-            action="/my-blog/github/updateImage"
-            :headers="token"
-            :show-file-list="false"
-            :on-success="handleAvatarSuccess"
-            :before-upload="beforeAvatarUpload"
-          >
-            <img v-if="form.picture" :src="form.picture" class="avatar" />
-            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
-          </el-upload>
-        </el-form-item>
-        <el-form-item>
-          <quill-editor
-            v-model="form.article"
-            ref="myQuillEditor"
-            :options="editorOption"
-            class="editor"
-          ></quill-editor>
-          <form
-            action
-            method="post"
-            enctype="multipart/form-data"
-            id="uploadFormMulti"
-          >
-            <input
-              style="display: none"
-              :id="uniqueId"
-              type="file"
-              name="file"
-              multiple
-              accept="image/jpg, image/jpeg, image/png, image/gif"
-              @change="uploadImg('uploadFormMulti')"
-            />
-          </form>
-        </el-form-item>
-      </el-form>
+        <el-form style="padding-bottom: 50px" :model="form">
+          <el-form-item label="标题" label-width="120px">
+            <el-input v-model="form.title" autocomplete="off"></el-input>
+          </el-form-item>
+          <el-form-item label="简介" label-width="120px">
+            <el-input v-model="form.introduction"></el-input>
+          </el-form-item>
+          <el-form-item label="封面" label-width="120px">
+            <el-upload
+              class="avatar-uploader"
+              action="/my-blog/qiniu/upload"
+              :headers="token"
+              :show-file-list="false"
+              :on-success="handleAvatarSuccess"
+              :before-upload="beforeAvatarUpload"
+            >
+              <img v-if="form.picture" :src="form.picture" class="avatar" />
+              <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+            </el-upload>
+          </el-form-item>
+          <el-form-item>
+            <quill-editor
+              v-model="form.article"
+              ref="myQuillEditor"
+              :options="editorOption"
+              class="editor"
+            ></quill-editor>
+            <form
+              action
+              method="post"
+              enctype="multipart/form-data"
+              id="uploadFormMulti"
+            >
+              <input
+                style="display: none"
+                :id="uniqueId"
+                type="file"
+                name="file"
+                multiple
+                accept="image/jpg, image/jpeg, image/png, image/gif"
+                @change="uploadImg('uploadFormMulti')"
+              />
+            </form>
+          </el-form-item>
+        </el-form>
         <el-button @click="dialogFormVisible = false">取 消</el-button>
         <el-button type="primary" @click="sendArticle">确 定</el-button>
       </div>
@@ -201,7 +200,7 @@ export default {
   },
   mounted() {
     var _this = this;
-    var imgHandler = async function (image) {
+    var imgHandler = async function(image) {
       if (image) {
         var fileInput = document.getElementById(_this.uniqueId); //隐藏的file文本ID
         fileInput.click(); //加一个触发事件
@@ -244,11 +243,11 @@ export default {
     },
     // 封面上传
     handleAvatarSuccess(res, file) {
-      if (file.response.status == 200) {
-        this.$message.success(file.response.message);
-        this.form.picture = file.response.url;
+      if (res.status == "200") {
+        this.$message.success(res.msg);
+        this.form.picture = res.imageUrl;
       } else {
-        this.$message.warning(file.response.message);
+        this.$message.warning(res.msg);
       }
       this.$forceUpdate();
     },
@@ -286,7 +285,7 @@ export default {
         this.visible = false;
       });
     },
-    uploadImg: async function () {
+    uploadImg: async function() {
       var _this = this;
       //构造formData对象
       var formData = new FormData();
@@ -295,9 +294,11 @@ export default {
         //调用上传文件接口
         sendImage(formData).then((res) => {
           //返回上传文件的地址
-          let url = res.data.url;
-          if (url != null && url.length > 0) {
+          console.log(res);
+          let url = res.data.imageUrl;
+          if (res.status == "200") {
             let Range = _this.editor.getSelection();
+            console.log(url);
             url = url.indexOf("http") != -1 ? url : "http:" + url;
             //上传文件成功之后在富文本中回显(显示)
             _this.editor.insertEmbed(

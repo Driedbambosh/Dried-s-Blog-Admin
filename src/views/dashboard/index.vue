@@ -14,7 +14,7 @@
       <el-form-item label="头像">
         <el-upload
           class="avatar-uploader"
-          action="/my-blog/github/updateImage"
+          action="/my-blog/qiniu/upload"
           :headers="token"
           :show-file-list="false"
           :on-success="handleAvatarSuccess"
@@ -28,7 +28,12 @@
         <el-input disabled v-model="userInfo.userName" />
       </el-form-item>
       <el-form-item label="介绍">
-        <el-input :autosize="{ minRows: 4, maxRows: 6}" min v-model="userInfo.introduction" type="textarea" />
+        <el-input
+          :autosize="{ minRows: 4, maxRows: 6 }"
+          min
+          v-model="userInfo.introduction"
+          type="textarea"
+        />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="onSubmit">保存</el-button>
@@ -77,7 +82,7 @@ export default {
         } else {
           this.$message.warning("编辑失败");
         }
-        this.$store.dispatch('user/getInfo')
+        this.$store.dispatch("user/getInfo");
         this.loading = false;
       });
     },
@@ -85,11 +90,11 @@ export default {
       this.getUserInfo();
     },
     handleAvatarSuccess(res, file) {
-      if(file.response.status==200) {
-        this.$message.success(file.response.message)
-        this.userInfo.avatar = file.response.url;
-      }else {
-        this.$message.warning(file.response.message)
+      if (res.status == "200") {
+        this.$message.success(res.msg);
+        this.userInfo.avatar = res.imageUrl;
+      } else {
+        this.$message.warning(res.msg);
       }
     },
     beforeAvatarUpload(file) {
@@ -136,4 +141,3 @@ export default {
   display: block;
 }
 </style>
-
