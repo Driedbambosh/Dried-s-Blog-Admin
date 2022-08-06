@@ -18,7 +18,7 @@ export function editArticle(data) {
 
 export function sendImage(data) {
   return request({
-    url: '/github/updateImage',
+    url: '/qiniu/upload',
     method: 'post',
     data
   })
